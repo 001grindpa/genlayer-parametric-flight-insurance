@@ -62,11 +62,14 @@ class ParametricFlightInsurance(gl.Contract):
 
     @gl.public.write
     def resolve(self, policy_id: str) -> None:
+        if policy_id not in self.policies:
+            raise gl.vm.UserError("policy does not exist")
+
         policy = self.policies[policy_id]
         if policy.status != "ACTIVE":
             raise gl.vm.UserError("policy has already been resolved")
 
-        # Copy storage fields to memory before entering the nondeterministic block.
+        # Copy storage fields to memory before entering the nondeterministic block
         status_url = policy.status_url
         flight_number = policy.flight_number
         threshold = policy.delay_threshold_minutes
@@ -75,7 +78,8 @@ class ParametricFlightInsurance(gl.Contract):
 
         def fetch_and_extract() -> str:
             page = gl.nondet.web.get(status_url)
-            page_text = page.body.decode("utf-8")
+            page_text = page.body.decode("utf-8")[:6000]
+
             prompt = f"""
 You are extracting an insurance decision from a public flight status page.
 Flight number: {flight_number}
@@ -100,13 +104,12 @@ Use CANCELLED only when the page explicitly says the flight is cancelled.
                 raise gl.vm.UserError("invalid delay value")
             return json.dumps(result, sort_keys=True, separators=(",", ":"))
 
-        # Canonical JSON makes strict equality compare only the objective fields.
+        # Canonical JSON for strict equality
         result = json.loads(gl.eq_principle.strict_eq(fetch_and_extract))
         delay_minutes = result["delay_minutes"]
         observed_status = result["status"]
-        eligible = observed_status == "CANCELLED" or (
-            delay_minutes >= threshold
-        )
+
+        eligible = observed_status == "CANCELLED" or (delay_minutes >= threshold)
 
         policy.status = "APPROVED" if eligible else "REJECTED"
         policy.observed_delay_minutes = delay_minutes
@@ -114,12 +117,13 @@ Use CANCELLED only when the page explicitly says the flight is cancelled.
         policy.payout_eligible = eligible
 
         if eligible:
-            # The premium is also the policy payout. Keep the transfer atomic with
-            # the state update so a failed transfer cannot leave a paid claim.
-            _Recipient(policyholder).emit_transfer(value=premium)
+            # Payout equals the premium (1x) for simplicity
+            gl.get_contract_at(policyholder).emit_transfer(value=premium)
 
     @gl.public.view
     def get_policy(self, policy_id: str) -> dict[str, object]:
+        if policy_id not in self.policies:
+            raise gl.vm.UserError("policy does not exist")
         policy = self.policies[policy_id]
         return {
             "policy_id": policy_id,
@@ -136,6 +140,8 @@ Use CANCELLED only when the page explicitly says the flight is cancelled.
 
     @gl.public.view
     def get_policy_status(self, policy_id: str) -> str:
+        if policy_id not in self.policies:
+            raise gl.vm.UserError("policy does not exist")
         return self.policies[policy_id].status
 
     @gl.public.view
