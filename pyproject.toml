@@ -1,0 +1,19 @@
+[project]
+name = "genlayer-parametric-flight-insurance"
+version = "0.1.0"
+description = "A GenLayer Intelligent Contract for flight-delay coverage."
+readme = "README.md"
+authors = [
+    { name = "Grindpa", email = "anyanwufrancischu@yahoo.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "genlayer-py>=0.18.0,<0.19.0",
+]
+
+[project.scripts]
+genlayer-parametric-flight-insurance = "genlayer_parametric_flight_insurance:main"
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
