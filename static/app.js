@@ -1,10 +1,15 @@
 import { createClient } from 'https://esm.sh/genlayer-js@0.18.0?bundle';
 
-const CONTRACT_ADDRESS = '0x1fc96d90F9A74f7c465e52DCc481E5080b012273';
+const CONTRACT_ADDRESS = '0x733A3ad2FA449250e4F193B12c92cddc1B9b35DE';
 const RPC_URL = 'https://studio.genlayer.com/api';
 const CHAIN_ID = 61999;
 const CHAIN_HEX = '0xf1ef';
-const EXPLORER_URL = `https://explorer-studio.genlayer.com/tx/`;
+const EXPLORER_URL = `https://explorer-studio.genlayer.com/address/`;
+const TRUSTED_HOSTS = [
+  'flightaware.com', 'flightstats.com', 'flightradar24.com', 'google.com', 'bing.com',
+  'kayak.com', 'expedia.com', 'aa.com', 'united.com', 'delta.com', 'ba.com',
+  'britishairways.com', 'lufthansa.com'
+];
 const studionet = {
   id: CHAIN_ID,
   name: 'GenLayer Studionet',
@@ -34,7 +39,12 @@ function setBusy(button, busy, label) {
   button.disabled = busy;
   button.querySelector('span')?.replaceChildren(document.createTextNode(busy ? label : button.dataset.label || label));
 }
-function explorerLink(hash) { return `${EXPLORER_URL}${hash}`; }
+function explorerLink(path) { return `${EXPLORER_URL}${path}`; }
+function displayContractLink() {
+  $('tx-link').classList.remove('hidden');
+  $('tx-hash').href = explorerLink(CONTRACT_ADDRESS);
+  $('tx-hash').textContent = CONTRACT_ADDRESS;
+}
 function displayTx(hash) {
   $('tx-link').classList.remove('hidden');
   $('tx-hash').href = explorerLink(hash);
@@ -47,6 +57,41 @@ function parseGen(value) {
   return BigInt(whole) * 1000000000000000000n + BigInt(fraction.padEnd(18, '0'));
 }
 function shortAddress(address) { return `${address.slice(0, 6)}...${address.slice(-4)}`; }
+function extractHost(urlString) {
+  try {
+    const url = new URL(urlString);
+    return url.hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return null;
+  }
+}
+function isHttps(urlString) {
+  try {
+    return new URL(urlString).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+function isValidTrustedHost(host) {
+  return TRUSTED_HOSTS.some(trusted => host === trusted || host === `www.${trusted}`);
+}
+function validateDualUrls(urlA, urlB) {
+  if (!isHttps(urlA) || !isHttps(urlB)) {
+    return { valid: false, error: 'Both URLs must use HTTPS.' };
+  }
+  const hostA = extractHost(urlA);
+  const hostB = extractHost(urlB);
+  if (!hostA || !hostB) {
+    return { valid: false, error: 'Invalid URL format.' };
+  }
+  if (!isValidTrustedHost(hostA) || !isValidTrustedHost(hostB)) {
+    return { valid: false, error: `URLs must be from trusted hosts: ${TRUSTED_HOSTS.join(', ')}` };
+  }
+  if (hostA === hostB) {
+    return { valid: false, error: 'Source A and Source B must be from different hosts.' };
+  }
+  return { valid: true };
+}
 function normalizeResult(result) {
   if (typeof result === 'bigint') return result.toString();
   if (typeof result === 'string') return result;
@@ -73,8 +118,8 @@ async function connectWallet() {
   state.account = accounts[0];
   state.writeClient = createClient({ chain: studionet, account: state.account, provider: window.ethereum });
   $('connect-btn').textContent = shortAddress(state.account);
-  $('connect-btn').classList.remove('bg-[var(--lime)]', 'text-[var(--ink)]');
-  $('connect-btn').classList.add('border', 'border-white/20', 'text-[var(--paper)]');
+  $('connect-btn').classList.remove('bg-[var(--lime)]');
+  $('connect-btn').classList.add('border', 'border-white/20');
   setActivity(`Wallet connected: ${shortAddress(state.account)}. Ready for a policy transaction.`);
   showToast('Wallet connected', `Using ${shortAddress(state.account)} on Studionet.`, 'success');
 }
@@ -110,13 +155,16 @@ $('create-form').addEventListener('submit', async (event) => {
     const client = await requireWallet();
     const flight = $('flight-number').value.trim();
     const threshold = Number($('delay-threshold').value);
-    const url = $('status-url').value.trim();
+    const urlA = $('status-url-a').value.trim();
+    const urlB = $('status-url-b').value.trim();
     const value = parseGen($('premium').value);
-    if (!flight || !Number.isInteger(threshold) || threshold < 1 || !/^https?:\/\//i.test(url)) throw new Error('Check the flight, threshold, and public HTTP(S) URL.');
+    if (!flight || !Number.isInteger(threshold) || threshold < 1) throw new Error('Check the flight number and delay threshold.');
+    const validation = validateDualUrls(urlA, urlB);
+    if (!validation.valid) throw new Error(validation.error);
     const countBefore = BigInt(normalizeResult(await read('get_policy_count')));
     setBusy(button, true, 'Waiting for wallet...');
     setActivity('Confirm the premium transaction in your wallet.');
-    const hash = await client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'create_policy', args: [flight, threshold, url], value });
+    const hash = await client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'create_policy', args: [flight, threshold, urlA, urlB], value });
     displayTx(hash);
     setActivity('Policy transaction submitted. Waiting for Studionet finalization.');
     await waitForFinalized(state.readClient, hash);
@@ -126,6 +174,7 @@ $('create-form').addEventListener('submit', async (event) => {
     $('lookup-policy-id').value = policyId;
     await lookupPolicy(policyId);
     await refreshCount();
+    displayContractLink();
     setActivity(`Policy #${policyId} is live and funded.`, 'success');
     showToast(`Policy #${policyId} created`, 'Your premium is now held by the contract.', 'success');
     $('create-form').reset();
@@ -146,6 +195,7 @@ $('resolve-form').addEventListener('submit', async (event) => {
     setActivity('Resolution submitted. Consensus finalization may take a few minutes.');
     await waitForFinalized(state.readClient, hash);
     await lookupPolicy(policyId);
+    displayContractLink();
     setActivity(`Policy #${policyId} has been resolved.`, 'success');
     showToast('Resolution complete', `Policy #${policyId} has been updated on-chain.`, 'success');
   } catch (error) { setActivity(error.message || String(error), 'error'); showToast('Resolution failed', error.message || String(error), 'error'); }

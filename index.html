@@ -1,29 +1,39 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#11151d">
-  <meta name="description" content="Parametric flight delay insurance powered by GenLayer consensus.">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#11151d" />
+  <meta name="description" content="Parametric flight delay insurance powered by GenLayer consensus." />
   <title>Flight Cover / GenLayer</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="static/styles.css" />
 </head>
+
 <body class="min-h-screen">
   <div class="mx-auto max-w-7xl px-5 py-5 sm:px-8 lg:px-12">
     <header class="reveal flex items-center justify-between border-b border-white/10 pb-5">
       <a href="#top" class="flex items-center gap-3" aria-label="Flight Cover home">
-        <span class="grid h-9 w-9 place-items-center bg-[var(--lime)] text-[var(--ink)] display text-lg font-bold">FC</span>
-        <span class="display text-sm font-semibold tracking-wide text-[var(--paper)]">FLIGHT COVER <span class="text-white/35">/</span> GENLAYER</span>
+        <span
+          class="grid h-9 w-9 place-items-center bg-[var(--lime)] text-[var(--ink)] display text-lg font-bold">FC</span>
+        <span class="display text-sm font-semibold tracking-wide text-[var(--paper)]">FLIGHT COVER <span
+            class="text-white/35">/</span> GENLAYER</span>
       </a>
       <div class="flex items-center gap-3">
-        <div class="hidden items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs text-white/55 sm:flex">
+        <div
+          class="hidden items-center gap-2 rounded-full border border-white/10 px-3 py-2 text-xs text-white/55 sm:flex">
           <span class="status-dot h-2 w-2 rounded-full bg-[var(--lime)]"></span>
           <span id="network-label">Studionet · 61999</span>
         </div>
-        <button id="connect-btn" class="btn rounded-none bg-[var(--lime)] px-4 py-2.5 text-xs font-bold text-[var(--ink)]">Connect wallet</button>
+        <button id="connect-btn"
+          class="btn rounded-none bg-[var(--lime)] px-4 py-2.5 text-xs font-bold text-[var(--ink)]">
+          Connect wallet
+        </button>
       </div>
     </header>
 
@@ -31,62 +41,197 @@
       <section class="reveal grid gap-8 pb-12 pt-14 lg:grid-cols-[1.2fr_.8fr] lg:items-end lg:pt-20">
         <div>
           <p class="eyebrow mb-5">Parametric protection / live consensus</p>
-          <h1 class="display max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.04em] text-[var(--paper)] sm:text-7xl">When your flight slips, your cover moves.</h1>
-          <p class="mt-7 max-w-xl text-base leading-7 text-white/55">Create a policy in GEN. When the moment comes, GenLayer validators read the public flight record and settle the claim against your threshold.</p>
+          <h1
+            class="display max-w-4xl text-5xl font-semibold leading-[.95] tracking-[-.04em] text-[var(--paper)] sm:text-7xl">
+            When your flight slips, your cover moves.
+          </h1>
+          <p class="mt-7 max-w-xl text-base leading-7 text-white/55">
+            Create a policy in GEN. When the moment comes, GenLayer validators
+            read the public flight record and settle the claim against your
+            threshold.
+          </p>
         </div>
         <div class="border-l border-[var(--coral)]/70 pl-5 lg:mb-1">
           <p class="eyebrow text-[var(--coral)]">Contract address</p>
-          <a class="mono mt-3 block break-all text-xs leading-6 text-white/65 transition hover:text-[var(--cyan)]" href="https://explorer-studio.genlayer.com/address/0x1fc96d90F9A74f7c465e52DCc481E5080b012273" target="_blank" rel="noreferrer">0x1fc96d90F9A74f7c465e52DCc481E5080b012273</a>
-          <div class="mt-4 flex items-center gap-2 text-xs text-white/40"><span class="h-1.5 w-1.5 rounded-full bg-[var(--cyan)]"></span> StudioNet / native GEN</div>
+          <a class="mono mt-3 block break-all text-xs leading-6 text-white/65 transition hover:text-[var(--cyan)]"
+            href="https://explorer-studio.genlayer.com/address/0x733A3ad2FA449250e4F193B12c92cddc1B9b35DE"
+            target="_blank" rel="noreferrer">0x733A3ad2FA449250e4F193B12c92cddc1B9b35DE</a>
+          <div class="mt-4 flex items-center gap-2 text-xs text-white/40">
+            <span class="h-1.5 w-1.5 rounded-full bg-[var(--cyan)]"></span>
+            StudioNet / native GEN
+          </div>
         </div>
       </section>
 
       <section class="reveal reveal-delay mb-8 grid gap-4 sm:grid-cols-3">
-        <div class="panel p-5"><p class="eyebrow">Policies written</p><p id="policy-count" class="display mt-3 text-4xl font-semibold text-[var(--paper)]">—</p><p class="mt-2 text-xs text-white/40">on-chain allocation count</p></div>
-        <div class="panel p-5"><p class="eyebrow text-[var(--cyan)]">Resolution model</p><p class="display mt-3 text-2xl font-semibold">Strict equality</p><p class="mt-2 text-xs text-white/40">canonical LLM extraction</p></div>
-        <div class="panel p-5"><p class="eyebrow text-[var(--coral)]">Claim trigger</p><p class="display mt-3 text-2xl font-semibold">Delay or cancel</p><p class="mt-2 text-xs text-white/40">threshold is policy-defined</p></div>
+        <div class="panel p-5">
+          <p class="eyebrow">Policies written</p>
+          <p id="policy-count" class="display mt-3 text-4xl font-semibold text-[var(--paper)]">
+            —
+          </p>
+          <p class="mt-2 text-xs text-white/40">on-chain allocation count</p>
+        </div>
+        <div class="panel p-5">
+          <p class="eyebrow text-[var(--cyan)]">Dual sources</p>
+          <p class="display mt-3 text-2xl font-semibold">Consensus verified</p>
+          <p class="mt-2 text-xs text-white/40">two independent pages agree</p>
+        </div>
+        <div class="panel p-5">
+          <p class="eyebrow text-[var(--coral)]">Payout rules</p>
+          <p class="display mt-3 text-2xl font-semibold">Approved or refunded</p>
+          <p class="mt-2 text-xs text-white/40">your premium always returns</p>
+        </div>
       </section>
 
       <section class="grid gap-5 lg:grid-cols-2">
         <div class="panel reveal reveal-delay-2 p-6 sm:p-8">
           <div class="flex items-start justify-between gap-5 border-b border-white/10 pb-6">
-            <div><p class="eyebrow">01 / Underwrite</p><h2 class="display mt-2 text-2xl font-semibold">Create a policy</h2></div>
-            <span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--lime)]/40 text-sm text-[var(--lime)]">+</span>
+            <div>
+              <p class="eyebrow">01 / Underwrite</p>
+              <h2 class="display mt-2 text-2xl font-semibold">
+                Create a policy
+              </h2>
+            </div>
+            <span
+              class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--lime)]/40 text-sm text-[var(--lime)]">+</span>
           </div>
           <form id="create-form" class="mt-7 space-y-5">
-            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Flight number</span><input id="flight-number" class="field rounded-none px-4 py-3.5 text-sm" type="text" placeholder="GL 123" autocomplete="off" required></label>
-            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Delay threshold <span class="text-white/35">/ minutes</span></span><input id="delay-threshold" class="field rounded-none px-4 py-3.5 text-sm" type="number" min="1" step="1" placeholder="120" required></label>
-            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Public status URL</span><input id="status-url" class="field rounded-none px-4 py-3.5 text-sm" type="url" placeholder="https://flight.example/status/GL123" required></label>
-            <label class="block"><span class="mb-2 flex items-center justify-between text-xs font-semibold text-white/65"><span>Premium <span class="text-white/35">/ GEN</span></span><span class="text-white/35">1 GEN = 10¹⁸ wei</span></span><input id="premium" class="field rounded-none px-4 py-3.5 text-sm" type="text" inputmode="decimal" placeholder="0.10" required></label>
-            <button id="create-btn" class="btn mt-2 flex w-full items-center justify-center gap-2 rounded-none bg-[var(--lime)] px-5 py-4 text-sm font-bold text-[var(--ink)]" type="submit"><span>Create policy</span><span aria-hidden="true">↗</span></button>
+            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Flight number</span><input
+                id="flight-number" class="field rounded-none px-4 py-3.5 text-sm" type="text" placeholder="GL 123"
+                autocomplete="off" required /></label>
+            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Delay threshold
+                <span class="text-white/35">/ minutes</span></span><input id="delay-threshold"
+                class="field rounded-none px-4 py-3.5 text-sm" type="number" min="1" step="1" placeholder="120"
+                required /></label>
+            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Source A URL <span
+                  class="text-white/35">/ https required</span></span><input id="status-url-a"
+                class="field rounded-none px-4 py-3.5 text-sm" type="url"
+                placeholder="https://flightaware.com/live/flight/GL123" required /></label>
+            <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Source B URL <span
+                  class="text-white/35">/ different host</span></span><input id="status-url-b"
+                class="field rounded-none px-4 py-3.5 text-sm" type="url"
+                placeholder="https://flightstats.com/flight/GL123" required /></label>
+            <div class="text-xs leading-5 text-white/40 border-l border-white/15 pl-4">
+              <p class="font-semibold text-white/55">Trusted sources:</p>
+              <p class="mt-1">flightaware.com, flightstats.com, flightradar24.com, google.com, bing.com, kayak.com,
+                expedia.com, aa.com, united.com, delta.com, ba.com, britishairways.com, lufthansa.com</p>
+            </div>
+            <label class="block"><span
+                class="mb-2 flex items-center justify-between text-xs font-semibold text-white/65"><span>Premium <span
+                    class="text-white/35">/ GEN</span></span><span class="text-white/35">1 GEN = 10¹⁸
+                  wei</span></span><input id="premium" class="field rounded-none px-4 py-3.5 text-sm" type="text"
+                inputmode="decimal" placeholder="0.10" required /></label>
+            <button id="create-btn"
+              class="btn mt-2 flex w-full items-center justify-center gap-2 rounded-none bg-[var(--lime)] px-5 py-4 text-sm font-bold text-[var(--ink)]"
+              type="submit">
+              <span>Create policy</span><span aria-hidden="true">↗</span>
+            </button>
           </form>
         </div>
 
         <div class="space-y-5">
           <div class="panel reveal reveal-delay-2 p-6 sm:p-8">
-            <div class="flex items-start justify-between gap-5 border-b border-white/10 pb-6"><div><p class="eyebrow text-[var(--coral)]">02 / Resolve</p><h2 class="display mt-2 text-2xl font-semibold">Settle a claim</h2></div><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--coral)]/40 text-sm text-[var(--coral)]">→</span></div>
-            <form id="resolve-form" class="mt-7"><label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Policy ID</span><div class="flex gap-3"><input id="resolve-policy-id" class="field min-w-0 rounded-none px-4 py-3.5 text-sm" type="text" inputmode="numeric" placeholder="1" required><button id="resolve-btn" class="btn shrink-0 rounded-none bg-[var(--coral)] px-5 py-3.5 text-sm font-bold text-[var(--ink)]" type="submit">Resolve</button></div></label></form>
-            <div class="mt-5 border-l border-white/10 pl-4 text-xs leading-5 text-white/45">Resolution reads the status page through GenLayer's nondeterministic web and LLM layer. Finalization can take a few minutes.</div>
+            <div class="flex items-start justify-between gap-5 border-b border-white/10 pb-6">
+              <div>
+                <p class="eyebrow text-[var(--coral)]">02 / Resolve</p>
+                <h2 class="display mt-2 text-2xl font-semibold">
+                  Settle a claim
+                </h2>
+              </div>
+              <span
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--coral)]/40 text-sm text-[var(--coral)]">→</span>
+            </div>
+            <form id="resolve-form" class="mt-7">
+              <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Policy ID</span>
+                <div class="flex gap-3">
+                  <input id="resolve-policy-id" class="field min-w-0 rounded-none px-4 py-3.5 text-sm" type="text"
+                    inputmode="numeric" placeholder="1" required /><button id="resolve-btn"
+                    class="btn shrink-0 rounded-none bg-[var(--coral)] px-5 py-3.5 text-sm font-bold text-[var(--ink)]"
+                    type="submit">
+                    Resolve
+                  </button>
+                </div>
+              </label>
+            </form>
+            <div class="mt-5 border-l border-white/10 pl-4 text-xs leading-5 text-white/45">
+              Resolution reads the status page through GenLayer's
+              nondeterministic web and LLM layer. Finalization can take a few
+              minutes.
+            </div>
           </div>
           <div class="panel reveal reveal-delay-2 p-6 sm:p-8">
-            <div class="flex items-start justify-between gap-5 border-b border-white/10 pb-6"><div><p class="eyebrow text-[var(--cyan)]">03 / Inspect</p><h2 class="display mt-2 text-2xl font-semibold">Policy lookup</h2></div><span class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--cyan)]/40 text-sm text-[var(--cyan)]">⌕</span></div>
-            <form id="lookup-form" class="mt-7"><label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Policy ID</span><div class="flex gap-3"><input id="lookup-policy-id" class="field min-w-0 rounded-none px-4 py-3.5 text-sm" type="text" inputmode="numeric" placeholder="1" required><button id="lookup-btn" class="btn shrink-0 rounded-none border border-white/20 px-5 py-3.5 text-sm font-bold text-[var(--paper)] hover:bg-white/10" type="submit">Lookup</button></div></label></form>
-            <div id="lookup-result" class="mt-6 hidden"><div class="mb-3 flex items-center justify-between"><span class="eyebrow text-white/40">On-chain status</span><span id="lookup-status" class="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold">—</span></div><pre id="policy-json" class="mono max-h-72 overflow-auto whitespace-pre-wrap break-words border border-white/10 bg-[var(--ink)]/70 p-4 text-xs leading-6 text-white/65"></pre></div>
+            <div class="flex items-start justify-between gap-5 border-b border-white/10 pb-6">
+              <div>
+                <p class="eyebrow text-[var(--cyan)]">03 / Inspect</p>
+                <h2 class="display mt-2 text-2xl font-semibold">
+                  Policy lookup
+                </h2>
+              </div>
+              <span
+                class="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--cyan)]/40 text-sm text-[var(--cyan)]">⌕</span>
+            </div>
+            <form id="lookup-form" class="mt-7">
+              <label class="block"><span class="mb-2 block text-xs font-semibold text-white/65">Policy ID</span>
+                <div class="flex gap-3">
+                  <input id="lookup-policy-id" class="field min-w-0 rounded-none px-4 py-3.5 text-sm" type="text"inputmode="numeric" placeholder="1" required />
+                    <button id="lookup-btn"
+                    class="btn shrink-0 rounded-none border border-white/20 px-5 py-3.5 text-sm font-bold text-[var(--paper)] hover:bg-white/10"
+                    type="submit">
+                    Lookup
+                  </button>
+                </div>
+              </label>
+            </form>
+            <div id="lookup-result" class="mt-6 hidden">
+              <div class="mb-3 flex items-center justify-between">
+                <span class="eyebrow text-white/40">On-chain status</span><span id="lookup-status"
+                  class="rounded-full border border-white/15 px-3 py-1 text-xs font-semibold">—</span>
+              </div>
+              <pre id="policy-json"
+                class="mono max-h-72 overflow-auto whitespace-pre-wrap break-words border border-white/10 bg-[var(--ink)]/70 p-4 text-xs leading-6 text-white/65"></pre>
+            </div>
           </div>
         </div>
       </section>
 
       <section id="activity" class="mt-8 border-t border-white/10 pt-6">
-        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center"><div><p class="eyebrow">Activity</p><p id="activity-message" class="mt-2 text-sm text-white/55">Connect a wallet to create or resolve policies.</p></div><a class="text-xs font-semibold text-[var(--cyan)] transition hover:text-white" href="https://explorer-studio.genlayer.com/address/0x1fc96d90F9A74f7c465e52DCc481E5080b012273" target="_blank" rel="noreferrer">View contract ↗</a></div>
-        <div id="tx-link" class="mt-4 hidden border border-white/10 bg-white/[.03] p-4"><span class="text-xs text-white/45">Transaction</span> <a id="tx-hash" class="mono ml-2 break-all text-xs text-[var(--cyan)] hover:text-white" target="_blank" rel="noreferrer"></a></div>
+        <div class="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <p class="eyebrow">Activity</p>
+            <p id="activity-message" class="mt-2 text-sm text-white/55">
+              Connect a wallet to create or resolve policies.
+            </p>
+          </div>
+          <a class="text-xs font-semibold text-[var(--cyan)] transition hover:text-white"
+            href="https://explorer-studio.genlayer.com/address/0x733A3ad2FA449250e4F193B12c92cddc1B9b35DE"
+            target="_blank" rel="noreferrer">View contract ↗</a>
+        </div>
+        <div id="tx-link" class="mt-4 hidden border border-white/10 bg-white/[.03] p-4">
+          <span class="text-xs text-white/45">Contract or transaction</span>
+          <a id="tx-hash" class="mono ml-2 break-all text-xs text-[var(--cyan)] hover:text-white" target="_blank"
+            rel="noreferrer"></a>
+        </div>
       </section>
     </main>
 
-    <footer class="flex flex-col gap-3 border-t border-white/10 py-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between"><span>Parametric cover, settled by consensus.</span><div class="flex gap-5"><a class="hover:text-white" href="https://docs.genlayer.com" target="_blank" rel="noreferrer">GenLayer docs</a><a class="hover:text-white" href="https://github.com/001grindpa/genlayer-parametric-flight-insurance" target="_blank" rel="noreferrer">GitHub</a></div></footer>
+    <footer
+      class="flex flex-col gap-3 border-t border-white/10 py-6 text-xs text-white/35 sm:flex-row sm:items-center sm:justify-between">
+      <span>Parametric cover, settled by consensus.</span>
+      <div class="flex gap-5">
+        <a class="hover:text-white" href="https://docs.genlayer.com" target="_blank" rel="noreferrer">GenLayer
+          docs</a><a class="hover:text-white" href="https://github.com/001grindpa/genlayer-parametric-flight-insurance"
+          target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+    </footer>
   </div>
 
-  <div id="toast" class="pointer-events-none fixed bottom-5 right-5 z-50 max-w-sm translate-y-5 border border-white/15 bg-[var(--ink-soft)] px-5 py-4 text-sm text-white opacity-0 shadow-2xl transition duration-300"><div id="toast-title" class="font-semibold"></div><div id="toast-body" class="mt-1 text-xs leading-5 text-white/55"></div></div>
+  <div id="toast"
+    class="pointer-events-none fixed bottom-5 right-5 z-50 max-w-sm translate-y-5 border border-white/15 bg-[var(--ink-soft)] px-5 py-4 text-sm text-white opacity-0 shadow-2xl transition duration-300">
+    <div id="toast-title" class="font-semibold"></div>
+    <div id="toast-body" class="mt-1 text-xs leading-5 text-white/55"></div>
+  </div>
 
   <script type="module" src="static/app.js"></script>
 </body>
+
 </html>
