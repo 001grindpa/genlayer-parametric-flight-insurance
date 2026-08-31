@@ -1,3 +1,4 @@
 uv.lock
 .genLayerEnv
 .python-version
+pyproject.toml
