@@ -1,9 +1,11 @@
 import { createClient } from 'https://esm.sh/genlayer-js@0.18.0?bundle';
+import { studionet } from 'https://esm.sh/genlayer-js@0.18.0/chains?bundle';
 
 const CONTRACT_ADDRESS = '0x725aCDe23e4d651146ED82C84508Bc87b8c3608A';
+const ZERO_ACCOUNT = '0x0000000000000000000000000000000000000000';
 const RPC_URL = 'https://studio.genlayer.com/api';
-const CHAIN_ID = 61999;
-const CHAIN_HEX = '0xf22f';
+const CHAIN_ID = studionet.id;
+const CHAIN_HEX = `0x${Number(CHAIN_ID).toString(16)}`;
 const EXPLORER_URL = 'https://explorer-studio.genlayer.com/address/';
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TRUSTED_HOSTS = [
@@ -11,17 +13,14 @@ const TRUSTED_HOSTS = [
   'kayak.com', 'expedia.com', 'aa.com', 'united.com', 'delta.com', 'ba.com',
   'britishairways.com', 'lufthansa.com'
 ];
-const studionet = {
-  id: CHAIN_ID,
-  name: 'GenLayer Studionet',
-  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
-  rpcUrls: { default: { http: [RPC_URL] } },
-  blockExplorers: { default: { name: 'Studio Explorer', url: 'https://explorer-studio.genlayer.com' } },
-  isStudio: true
-};
+console.log('[chain]', { id: CHAIN_ID, hex: CHAIN_HEX, hasConsensus: Boolean(studionet.consensusMainContract) });
 
 const $ = (id) => document.getElementById(id);
-const state = { account: null, readClient: createClient({ chain: studionet, endpoint: RPC_URL }), writeClient: null };
+const state = {
+  account: null,
+  readClient: createClient({ chain: studionet, endpoint: RPC_URL, account: ZERO_ACCOUNT }),
+  writeClient: null
+};
 
 function setActivity(message, tone = 'normal') {
   $('activity-message').textContent = message;
@@ -53,8 +52,10 @@ function displayTx(hash) {
 }
 function parseGen(value) {
   const normalized = value.trim();
+  console.log('[parseGen] input', value, 'normalized', normalized);
   if (!/^\d+(\.\d{1,18})?$/.test(normalized) || Number(normalized) <= 0) throw new Error('Premium must be a positive GEN amount with up to 18 decimals.');
   const [whole, fraction = ''] = normalized.split('.');
+  console.log('[parseGen] parts', { whole, fraction });
   return BigInt(whole) * 1000000000000000000n + BigInt(fraction.padEnd(18, '0'));
 }
 function shortAddress(address) { return `${address.slice(0, 6)}...${address.slice(-4)}`; }
@@ -103,12 +104,43 @@ function validateDualUrls(urlA, urlB) {
   return { valid: true };
 }
 function normalizeResult(result) {
+  if (result == null) return '';
   if (typeof result === 'bigint') return result.toString();
+  if (typeof result === 'number') return String(result);
   if (typeof result === 'string') return result;
+  if (typeof result === 'object' && result.value != null) return normalizeResult(result.value);
   return String(result);
 }
+function toCount(result) {
+  const text = normalizeResult(result).trim();
+  if (!/^\d+$/.test(text)) return 0n;
+  return BigInt(text);
+}
 async function read(method, args = []) {
-  return state.readClient.readContract({ address: CONTRACT_ADDRESS, functionName: method, args, stateStatus: 'accepted' });
+  console.log('[read] start', method, args, 'from', state.account || ZERO_ACCOUNT);
+  const result = await state.readClient.readContract({
+    address: CONTRACT_ADDRESS,
+    functionName: method,
+    args,
+    stateStatus: 'accepted',
+    account: state.account || ZERO_ACCOUNT
+  });
+  console.log('[read] result', method, result);
+  if (result == null) {
+    throw new Error(`No value returned from ${method}. The contract may still be syncing, or this method is missing on ${CONTRACT_ADDRESS}.`);
+  }
+  return result;
+}
+async function readCount() {
+  try {
+    const raw = await read('get_policy_count');
+    const count = toCount(raw);
+    console.log('[readCount]', { raw, count: count.toString() });
+    return count;
+  } catch (error) {
+    console.warn('[readCount] failed, using 0n', error);
+    return 0n;
+  }
 }
 function sameChain(chainId) {
   if (chainId == null) return false;
@@ -211,20 +243,38 @@ $('create-form').addEventListener('submit', async (event) => {
     if (!dateCheck.valid) throw new Error(dateCheck.error);
     const validation = validateDualUrls(urlA, urlB);
     if (!validation.valid) throw new Error(validation.error);
-    const countBefore = BigInt(normalizeResult(await read('get_policy_count')));
-    setBusy(button, true, 'Waiting for wallet...');
-    setActivity('Confirm the premium transaction in your wallet.');
-    const hash = await client.writeContract({
+    const countBefore = await readCount();
+    const payload = {
       address: CONTRACT_ADDRESS,
       functionName: 'create_policy',
       args: [flight, departureDate, threshold, urlA, urlB],
-      value
+      value: value ?? 0n
+    };
+    console.log('[create] payload', {
+      ...payload,
+      value: payload.value?.toString?.() ?? payload.value,
+      valueType: typeof payload.value,
+      countBefore: countBefore.toString(),
+      account: state.account,
+      chainId: studionet.id,
+      client: Boolean(client)
     });
+    setBusy(button, true, 'Waiting for wallet...');
+    setActivity('Confirm the premium transaction in your wallet.');
+    let hash;
+    try {
+      hash = await client.writeContract(payload);
+      console.log('[create] write ok', hash);
+    } catch (error) {
+      console.error('[create] writeContract failed', error);
+      console.error('[create] cause', error?.cause, error?.shortMessage, error?.details);
+      throw error;
+    }
     displayTx(hash);
     setActivity('Policy transaction submitted. Waiting for Studionet finalization.');
     await waitForFinalized(state.readClient, hash);
-    const countAfter = BigInt(normalizeResult(await read('get_policy_count')));
-    const policyId = countAfter > countBefore ? countAfter.toString() : countBefore.toString();
+    const countAfter = await readCount();
+    const policyId = countAfter > countBefore ? countAfter.toString() : (countBefore > 0n ? countBefore.toString() : '1');
     $('resolve-policy-id').value = policyId;
     $('lookup-policy-id').value = policyId;
     await lookupPolicy(policyId);
@@ -233,7 +283,11 @@ $('create-form').addEventListener('submit', async (event) => {
     setActivity(`Policy #${policyId} is live. Coverage is reserved until resolve.`, 'success');
     showToast(`Policy #${policyId} created`, 'Approved pays coverage. Rejected retains the premium.', 'success');
     $('create-form').reset();
-  } catch (error) { setActivity(error.message || String(error), 'error'); showToast('Create policy failed', error.message || String(error), 'error'); }
+  } catch (error) {
+    console.error('[create] caught', error);
+    setActivity(error.message || String(error), 'error');
+    showToast('Create policy failed', error.message || String(error), 'error');
+  }
   finally { setBusy(button, false, 'Create policy'); }
 });
 $('resolve-form').addEventListener('submit', async (event) => {
@@ -245,7 +299,7 @@ $('resolve-form').addEventListener('submit', async (event) => {
     if (!/^\d+$/.test(policyId)) throw new Error('Policy ID must be a number.');
     setBusy(button, true, 'Resolve');
     setActivity(`Submitting resolution for policy #${policyId}.`);
-    const hash = await client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'resolve', args: [policyId] });
+    const hash = await client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'resolve', args: [policyId], value: 0n });
     displayTx(hash);
     setActivity('Resolution submitted. Consensus finalization may take a few minutes.');
     await waitForFinalized(state.readClient, hash);
