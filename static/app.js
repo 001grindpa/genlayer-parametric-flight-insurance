@@ -1,10 +1,11 @@
 import { createClient } from 'https://esm.sh/genlayer-js@0.18.0?bundle';
 
-const CONTRACT_ADDRESS = '0x733A3ad2FA449250e4F193B12c92cddc1B9b35DE';
+const CONTRACT_ADDRESS = '0x725aCDe23e4d651146ED82C84508Bc87b8c3608A';
 const RPC_URL = 'https://studio.genlayer.com/api';
 const CHAIN_ID = 61999;
-const CHAIN_HEX = '0xf1ef';
-const EXPLORER_URL = `https://explorer-studio.genlayer.com/address/`;
+const CHAIN_HEX = '0xf22f';
+const EXPLORER_URL = 'https://explorer-studio.genlayer.com/address/';
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TRUSTED_HOSTS = [
   'flightaware.com', 'flightstats.com', 'flightradar24.com', 'google.com', 'bing.com',
   'kayak.com', 'expedia.com', 'aa.com', 'united.com', 'delta.com', 'ba.com',
@@ -47,7 +48,7 @@ function displayContractLink() {
 }
 function displayTx(hash) {
   $('tx-link').classList.remove('hidden');
-  $('tx-hash').href = explorerLink(hash);
+  $('tx-hash').href = `https://explorer-studio.genlayer.com/tx/${hash}`;
   $('tx-hash').textContent = hash;
 }
 function parseGen(value) {
@@ -73,7 +74,16 @@ function isHttps(urlString) {
   }
 }
 function isValidTrustedHost(host) {
-  return TRUSTED_HOSTS.some(trusted => host === trusted || host === `www.${trusted}`);
+  return TRUSTED_HOSTS.some((trusted) => host === trusted || host === `www.${trusted}`);
+}
+function validateDepartureDate(date) {
+  if (!DATE_RE.test(date)) return { valid: false, error: 'Departure date must be YYYY-MM-DD.' };
+  const [year, month, day] = date.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) {
+    return { valid: false, error: 'Departure date is not a real calendar day.' };
+  }
+  return { valid: true };
 }
 function validateDualUrls(urlA, urlB) {
   if (!isHttps(urlA) || !isHttps(urlB)) {
@@ -100,21 +110,56 @@ function normalizeResult(result) {
 async function read(method, args = []) {
   return state.readClient.readContract({ address: CONTRACT_ADDRESS, functionName: method, args, stateStatus: 'accepted' });
 }
+function sameChain(chainId) {
+  if (chainId == null) return false;
+  return Number.parseInt(String(chainId), 16) === CHAIN_ID;
+}
+function providerErrorCode(error) {
+  return error?.code ?? error?.data?.originalError?.code ?? error?.error?.code;
+}
+async function currentChainId() {
+  return window.ethereum.request({ method: 'eth_chainId' });
+}
+async function switchToStudioNet() {
+  await window.ethereum.request({
+    method: 'wallet_switchEthereumChain',
+    params: [{ chainId: CHAIN_HEX }]
+  });
+}
+async function addStudioNet() {
+  await window.ethereum.request({
+    method: 'wallet_addEthereumChain',
+    params: [{
+      chainId: CHAIN_HEX,
+      chainName: 'GenLayer Studionet',
+      nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
+      rpcUrls: [RPC_URL],
+      blockExplorerUrls: ['https://explorer-studio.genlayer.com']
+    }]
+  });
+}
 async function ensureNetwork() {
   if (!window.ethereum) throw new Error('No injected wallet found. Install MetaMask or another EIP-1193 wallet.');
-  const current = await window.ethereum.request({ method: 'eth_chainId' });
-  if (current.toLowerCase() === CHAIN_HEX) return;
+  if (sameChain(await currentChainId())) return;
   try {
-    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: CHAIN_HEX }] });
+    await switchToStudioNet();
   } catch (error) {
-    if (error.code !== 4902) throw error;
-    await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{ chainId: CHAIN_HEX, chainName: 'GenLayer Studionet', nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 }, rpcUrls: [RPC_URL], blockExplorerUrls: ['https://explorer-studio.genlayer.com'] }] });
+    const code = providerErrorCode(error);
+    // 4902 = chain has never been added. Anything else (already added, user
+    // rejected, pending request) must not trigger another add prompt.
+    if (code !== 4902 && code !== -32603) throw error;
+    if (code === -32603 && !/unrecognized chain|chain .*not found/i.test(String(error?.message || ''))) throw error;
+    await addStudioNet();
+  }
+  if (!sameChain(await currentChainId())) {
+    throw new Error('Wallet is not on GenLayer Studionet (61999). Switch to it, then connect again.');
   }
 }
 async function connectWallet() {
   if (!window.ethereum) throw new Error('No injected wallet found. Install MetaMask or another EIP-1193 wallet.');
-  await ensureNetwork();
   const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+  if (!accounts?.length) throw new Error('No account returned by the wallet.');
+  await ensureNetwork();
   state.account = accounts[0];
   state.writeClient = createClient({ chain: studionet, account: state.account, provider: window.ethereum });
   $('connect-btn').textContent = shortAddress(state.account);
@@ -130,7 +175,9 @@ async function requireWallet() {
 }
 async function waitForFinalized(client, hash) {
   const receipt = await client.waitForTransactionReceipt({ hash, status: 'FINALIZED' });
-  if (receipt?.txExecutionResultName && receipt.txExecutionResultName !== 'FINISHED_WITH_RETURN') throw new Error(`Contract execution did not finish successfully: ${receipt.txExecutionResultName}`);
+  if (receipt?.txExecutionResultName && receipt.txExecutionResultName !== 'FINISHED_WITH_RETURN' && receipt.txExecutionResultName !== 'FINISHED') {
+    throw new Error(`Contract execution did not finish successfully: ${receipt.txExecutionResultName}`);
+  }
   return receipt;
 }
 async function refreshCount() {
@@ -154,17 +201,25 @@ $('create-form').addEventListener('submit', async (event) => {
   try {
     const client = await requireWallet();
     const flight = $('flight-number').value.trim();
+    const departureDate = $('departure-date').value.trim();
     const threshold = Number($('delay-threshold').value);
     const urlA = $('status-url-a').value.trim();
     const urlB = $('status-url-b').value.trim();
     const value = parseGen($('premium').value);
     if (!flight || !Number.isInteger(threshold) || threshold < 1) throw new Error('Check the flight number and delay threshold.');
+    const dateCheck = validateDepartureDate(departureDate);
+    if (!dateCheck.valid) throw new Error(dateCheck.error);
     const validation = validateDualUrls(urlA, urlB);
     if (!validation.valid) throw new Error(validation.error);
     const countBefore = BigInt(normalizeResult(await read('get_policy_count')));
     setBusy(button, true, 'Waiting for wallet...');
     setActivity('Confirm the premium transaction in your wallet.');
-    const hash = await client.writeContract({ address: CONTRACT_ADDRESS, functionName: 'create_policy', args: [flight, threshold, urlA, urlB], value });
+    const hash = await client.writeContract({
+      address: CONTRACT_ADDRESS,
+      functionName: 'create_policy',
+      args: [flight, departureDate, threshold, urlA, urlB],
+      value
+    });
     displayTx(hash);
     setActivity('Policy transaction submitted. Waiting for Studionet finalization.');
     await waitForFinalized(state.readClient, hash);
@@ -175,8 +230,8 @@ $('create-form').addEventListener('submit', async (event) => {
     await lookupPolicy(policyId);
     await refreshCount();
     displayContractLink();
-    setActivity(`Policy #${policyId} is live and funded.`, 'success');
-    showToast(`Policy #${policyId} created`, 'Your premium is now held by the contract.', 'success');
+    setActivity(`Policy #${policyId} is live. Coverage is reserved until resolve.`, 'success');
+    showToast(`Policy #${policyId} created`, 'Approved pays coverage. Rejected retains the premium.', 'success');
     $('create-form').reset();
   } catch (error) { setActivity(error.message || String(error), 'error'); showToast('Create policy failed', error.message || String(error), 'error'); }
   finally { setBusy(button, false, 'Create policy'); }
@@ -197,7 +252,7 @@ $('resolve-form').addEventListener('submit', async (event) => {
     await lookupPolicy(policyId);
     displayContractLink();
     setActivity(`Policy #${policyId} has been resolved.`, 'success');
-    showToast('Resolution complete', `Policy #${policyId} has been updated on-chain.`, 'success');
+    showToast('Resolution complete', `Policy #${policyId} now shows payout or retained premium.`, 'success');
   } catch (error) { setActivity(error.message || String(error), 'error'); showToast('Resolution failed', error.message || String(error), 'error'); }
   finally { setBusy(button, false, 'Resolve'); }
 });
